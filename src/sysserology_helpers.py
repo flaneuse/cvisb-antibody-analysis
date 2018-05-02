@@ -82,38 +82,23 @@ def create_dirs_1expt(expt_id, expt_type, exptdir):
 
     return([datadir, gatingdir, tmpdir, metadir, logfile])
 
-# # os.chdir(exptdir)
-# # os.makedirs('log')
-# # TODO: make better header
-# # TODO: make into class so everything comes along for the ride, sets wd
-# def create_logfile(exptdir, logfile = 'logfile.txt'):
-#     print('create')
-#
-#     with open(f'{exptdir}{logfile}', 'w') as mylog:
-#         mylog.write("LOGFILE FOR EXPERIMENT\n")
-#
-# def write_logfile(msg, logfile = 'logfile.txt'):
-#     print(msg)
-#     with open(logfile, 'a') as mylog:
-#         mylog.write(msg + "\n")
-
 class Logfile:
     def __init__(self, logdir, expt_id, expt_type, logfile = 'logfile.txt'):
         self.logdir = logdir
         self.expt_id = expt_id
         self.expt_type = expt_type
-        self.logfile = logfile
+        self.logfile = f'{logdir}{expt_type}_{expt_id}_{logfile}'
         self.create()
 
     def create(self):
         print('creating logfile')
 
-        with open(f'{self.logdir}{self.logfile}', 'w') as mylog:
+        with open(f'{self.logfile}', 'w') as mylog:
             mylog.write(f"LOGFILE FOR {self.expt_type.upper()} EXPERIMENT {self.expt_id.upper()}:\n\n")
 
     def write(self, msg):
         print(msg)
-        with open(f'{self.logdir}{self.logfile}', 'a') as mylog:
+        with open(f'{self.logfile}', 'a') as mylog:
             mylog.write(msg + "\n")
 
     def section(self, section_header):
