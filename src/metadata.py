@@ -21,29 +21,55 @@ import zipfile
 import FlowCytometryTools
 from FlowCytometryTools import FCMeasurement
 
-# --- common helper functions ---
-# TODO: fix paths
-os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
-# from sysserology_helpers import write_logfile, read_plates
+# [] Outermost functions ---------------------------------------------------------------------------------
+# What should be called after reading
+# Loops over a row in the plate lookup table to rename the files and pull the metadata
+def getmd_renamefiles(plates, expt_dict, fcsfile):
+    for expt_id, expt_dirs  in expt_dict.items():
+        print(expt_id)
+        # only grab the portion of the plate lookup table containing current expt
+        filtered_plates = plates[plates.expt_id == expt_id]
+
+        getmd_renamefiles_1expt(fcsfile, filtered_plates, expt_id, expt_dirs)
 
 
-wd = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/'
-os.chdir(wd)
-# def get_metadata():
+def getmd_renamefiles_1expt(fcsfile, plates, expt_id, expt_dirs):
+    # metadata holder
+    md = pd.DataFrame()
 
-# [setup] -----------------------------------------------------------------------------------------------
-# --- inputs ---
-# TODO: common input file
-# template to match well locations to unique sample IDs
-platefile = 'ADNP_PlateLayout.xlsx'
+    # grab the output directories
+    datadir = expt_dirs['datadir']
+    gatingdir = expt_dirs['gatingdir']
+    tmpdir = expt_dirs['tmpdir']
+    metadir = expt_dirs['metadir']
+    logfile = expt_dirs['logfile']
+    expt_type = expt_dirs['type']
 
-# zipped file from FlowJo containing the raw data files + gating info + metadata
-fcsfile = 'ADNP_Tulane.acs'
+    # unzip the .fcs files
+    unzip_acs(fcsfile, tmpdir)
+
+    # TODO: copy the FlowJo XLSX files
+
+    # rename the .fcs files, pull out metadata
+    logfile.section("RENAMING FCS & GATING FILES")
+    fcs_filelist = os.listdir(tmpdir)
+
+    for idx, row in plates.iterrows():
+        md = rename_fcs(fcs_filelist, row, md, datadir, gatingdir, tmpdir, logfile)
+
+    md = pd.merge(plates, md, on=['plate', 'well', 'sample_id'])
+    # export to .csv file
+    md.to_csv(metadir + f"{expt_type}-{expt_id}_metadata.csv", sep=',')
+    logfile.endsection('.fcs/gating files renamed, metadata extracted')
+
+    # remove temp directory
+    rm_tmp(tmpdir, logfile)
+
 
 
 # TODO: try/catch no data
 
-
+# [1] Unzip .acs --> .fcs files ---------------------------------------------------------------------------
 def unzip_acs(fcsfile, tmpdir):
     # [Unzip the FlowJo .acs file to individual .fcs files] -------------------------------------------------
     acs_ref = zipfile.ZipFile(fcsfile, 'r')
@@ -51,41 +77,8 @@ def unzip_acs(fcsfile, tmpdir):
     acs_ref.close()
 
 
-def find_files(fcs_filelist, plate_num, well, logfile):
-    fcs_string = f"{plate_num}\.\w+{well}\_.+\.fcs"
-    gate_string = f"{plate_num}\_\w+{well}\_.+\.xml"
 
-    datafile = find_file(fcs_filelist, fcs_string)
-    gatefile = find_file(fcs_filelist, gate_string)
-    # matched_files = filter(r.match, fcs_filelist)  # returns iterator
-    # list(matched_files)
-
-    if(len(datafile) == 0):
-        logfile.write(
-            f"Missing .fcs data file for well {well}, plate {plate_num}")
-
-    if(len(gatefile) == 0):
-        logfile.write(
-            f"Missing .xml gating file for well {well}, plate {plate_num}")
-
-    return({'datafile': datafile, 'gatefile': gatefile})
-
-
-def find_file(filelist, search_string, exact_match=False):
-    if(not exact_match):
-        search_string = ".*" + search_string + ".*"
-
-    search = re.compile(search_string)
-    file = [x for x in filelist if search.match(x)]
-
-    # if there's only one match, convert from array to string
-    if (len(file) == 1):
-        return file[0]
-    return file
-
-# [Move and rename the .fcs files] ----------------------------------------------------------------------
-
-
+# [2] Move and rename the .fcs files ----------------------------------------------------------------------
 def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir, logfile):
     well = sample.well
     plate_num = sample.plate
@@ -121,6 +114,37 @@ def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir, logfile):
         pass
     return md
 
+def find_files(fcs_filelist, plate_num, well, logfile):
+    fcs_string = f"{plate_num}\.\w+{well}\_.+\.fcs"
+    gate_string = f"{plate_num}\_\w+{well}\_.+\.xml"
+
+    datafile = find_file(fcs_filelist, fcs_string)
+    gatefile = find_file(fcs_filelist, gate_string)
+    # matched_files = filter(r.match, fcs_filelist)  # returns iterator
+    # list(matched_files)
+
+    if(len(datafile) == 0):
+        logfile.write(
+            f"Missing .fcs data file for well {well}, plate {plate_num}")
+
+    if(len(gatefile) == 0):
+        logfile.write(
+            f"Missing .xml gating file for well {well}, plate {plate_num}")
+
+    return({'datafile': datafile, 'gatefile': gatefile})
+
+
+def find_file(filelist, search_string, exact_match=False):
+    if(not exact_match):
+        search_string = ".*" + search_string + ".*"
+
+    search = re.compile(search_string)
+    file = [x for x in filelist if search.match(x)]
+
+    # if there's only one match, convert from array to string
+    if (len(file) == 1):
+        return file[0]
+    return file
 
 def get_metadata(sample, fcs_data, fcs_date, fcs_filename, md):
     # Here's where it's defined which automatically saved info to pull from the fcs files.
@@ -142,50 +166,10 @@ def get_metadata(sample, fcs_data, fcs_date, fcs_filename, md):
     return md
 
 
-def getmd_renamefiles(plates, expt_dict):
-    for expt_id, expt_dirs  in expt_dict.items():
-        print(expt_id)
-        # only grab the portion of the plate lookup table containing current expt
-        filtered_plates = plates[plates.expt_id == expt_id]
 
-        getmd_renamefiles_1expt(filtered_plates, expt_id, expt_dirs)
-
-
-def getmd_renamefiles_1expt(plates, expt_id, expt_dirs):
-    # metadata holder
-    md = pd.DataFrame()
-
-    # grab the output directories
-    datadir = expt_dirs['datadir']
-    gatingdir = expt_dirs['gatingdir']
-    tmpdir = expt_dirs['tmpdir']
-    metadir = expt_dirs['metadir']
-    logfile = expt_dirs['logfile']
-    expt_type = expt_dirs['type']
-
-    print(logfile.logfile)
-
-    # unzip the .fcs files
-    unzip_acs(fcsfile, tmpdir)
-
-    # TODO: copy the FlowJo XLSX files
-
-    # rename the .fcs files, pull out metadata
-    logfile.section("RENAMING FCS & GATING FILES")
-    fcs_filelist = os.listdir(tmpdir)
-
-    for idx, row in plates.iterrows():
-        md = rename_fcs(fcs_filelist, row, md, datadir, gatingdir, tmpdir, logfile)
-
-    md = pd.merge(plates, md, on=['plate', 'well', 'sample_id'])
-    # export to .csv file
-    md.to_csv(metadir + f"{expt_type}-{expt_id}_metadata.csv", sep=',')
-    logfile.endsection('.fcs/gating files renamed, metadata extracted')
-
-    # remove temp directory
-    rm_tmp(tmpdir, logfile)
-
+# [3] Remove temp files -----------------------------------------------------------------------------------
 def rm_tmp(tmpdir, logfile):
+    logfile.section('cleaning up temporary files from renaming files')
     # refresh the files in the working directory:
     fcs_filelist = os.listdir(tmpdir)
     # Remove the two extra files that always come along for the ride
@@ -202,6 +186,4 @@ def rm_tmp(tmpdir, logfile):
     except:
         logfile.write(
             f"Warning: not all .fcs data files were processed. This often happens if you have two experimental IDs in the same .acs file. {os.listdir(tmpdir)} files remain")
-
-
-# x = process_files(platefile)
+    logfile.endsection('end file cleanup')
