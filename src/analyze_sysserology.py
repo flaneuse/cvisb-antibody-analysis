@@ -40,7 +40,7 @@ expt_dict = create_dirs(expt_ids, wd)
 # expt_dict['BMGEXP568']
 
 # [3] Pull out metadata and rename files ------------------------------------------------------------------
-getmd_renamefiles(plates, expt_dict, fcsfile)
+getmd_renamefiles(plates, expt_dict, fcsfile, platefile, fluorfile)
 
 for expt_id, expt_dirs  in expt_dict.items():
     print(expt_id)

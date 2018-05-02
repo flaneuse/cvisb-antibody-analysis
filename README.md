@@ -18,12 +18,13 @@ Python-based functions to convert flow cytometry fluorescence data into aggregat
 
 ### Outputs
 * * **/metadata/**[ADCD, ADCP, ADNP, or NKD]**-**{expt\_id}**_metadata.csv**: all metadata parameters for a given experiment.
+* **/metadata/**[ADCD, ADCP, ADNP, or NKD]**-**{expt_id}**\_PlateLayout.xlsx**: Plate lookup dictionary to connect samples to physical plate layout
 * * **/input/fcs/**{sample\_id}**-plate**{plate\_number}**-**{well}**\_sysserology-{expt\_id}\_**{date}**.fcs**: raw flow cytometry data
 * * **/input/fcs/**{sample\_id}**-plate**{plate\_num}**-**{well}**\_sysserology-**{expt\_id}**\_**{fcs\_date}**\_gates.xml**: gating filters for each channel
-* **/input/**{expt\_id}**\_**[ADCD, ADCP, ADNP, or NKD]**\_exported from FlowJo.xlsx**: fluorescence data per sample after gating, exported from FlowJo
+* **/input/**{expt\_id}**\_**[ADCD, ADCP, ADNP, or NKD]**\_FlowJoExport.xlsx**: fluorescence data per sample after gating, exported from FlowJo
 * **sysserology-**[ADCD, ADCP, ADNP, or NKD]**\_**{expt\_id}**\_**{date}**.csv**: fluorescence counts and scores per sample replicate
 * **sysserology-combined-ADCD**{ADCD expt_id}**-ADCP**{ADCP expt_id}**-ADNP**{ADNP expt_id}**-NKD**{NKD expt_id}**.csv**: combined, summarized score for each sample, after averaging and quality control
-* **/log/** [ADCD, ADCP, ADNP, or NKD]**-**{expt_id}**\_logfile.txt**: log files for any samples discarded or files not found during analysis
+* **/log/**[ADCD, ADCP, ADNP, or NKD]**-**{expt_id}**\_logfile.txt**: log files for any samples discarded or files not found during analysis
 
 ## <a name='calcs'> Calculations</a>
 * **Background correction**: For each assay type, there is an option to background-correct the measurements. If this parameter is set to "true", the average background fluorescence from the "no fluorescence" samples (e.g. just buffer + reagents) from a particular plate will be subtracted before the fluorescence is calculated. By default, no background correction is done.

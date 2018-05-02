@@ -18,20 +18,24 @@ import os
 def create_dirs(expt_ids, exptdir):
     expt_dict = dict()
     for expt_id, expt_type in expt_ids.items():
-        datadir, gatingdir, tmpdir, metadir, logfile = create_dirs_1expt(expt_id, expt_type, exptdir)
+        inputdir, datadir, gatingdir, tmpdir, metadir, logfile = create_dirs_1expt(expt_id, expt_type, exptdir)
         expt_dict[expt_id] = {
-        'type': expt_type, 'logfile': logfile, 'datadir': datadir,
-        'gatingdir': gatingdir, 'tmpdir': tmpdir, 'metadir': metadir
+        'type': expt_type, 'logfile': logfile,
+        'exptdir': exptdir, 'inputdir': inputdir,
+        'datadir': datadir, 'gatingdir': gatingdir,
+        'tmpdir': tmpdir, 'metadir': metadir
         }
 
     return(expt_dict)
 
 def create_dirs_1expt(expt_id, expt_type, exptdir):
     # TODO: check if exptdir ends in a '/'; if not, append
+    inputdir = f'{exptdir}{expt_id}/input'
 
-    datadir = f'{exptdir}{expt_id}/input/fcs'
+    datadir = f'{inputdir}/fcs'
 
-    gatingdir = f'{exptdir}{expt_id}/input/gating'
+    gatingdir = f'{inputdir}/gating'
+
     # temp for unzipping files
     tmpdir = f'{exptdir}{expt_id}/tmp/'
 
@@ -80,7 +84,7 @@ def create_dirs_1expt(expt_id, expt_type, exptdir):
 
     logfile.endsection("done creating directories")
 
-    return([datadir, gatingdir, tmpdir, metadir, logfile])
+    return([inputdir, datadir, gatingdir, tmpdir, metadir, logfile])
 
 class Logfile:
     def __init__(self, logdir, expt_id, expt_type, logfile = 'logfile.txt'):

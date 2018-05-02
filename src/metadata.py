@@ -15,6 +15,7 @@ import re  # regular expression / string matching
 
 # --- file manipulation ---
 import os
+import shutil
 import zipfile
 
 # --- flow cytometry ---
@@ -24,14 +25,21 @@ from FlowCytometryTools import FCMeasurement
 # [] Outermost functions ---------------------------------------------------------------------------------
 # What should be called after reading
 # Loops over a row in the plate lookup table to rename the files and pull the metadata
-def getmd_renamefiles(plates, expt_dict, fcsfile):
+def getmd_renamefiles(plates, expt_dict, fcsfile, platefile, fluorfile):
     for expt_id, expt_dirs  in expt_dict.items():
         print(expt_id)
         # only grab the portion of the plate lookup table containing current expt
         filtered_plates = plates[plates.expt_id == expt_id]
 
         getmd_renamefiles_1expt(fcsfile, filtered_plates, expt_id, expt_dirs)
+        # copy the plate layout and fluorescence data to the metadata and input dirs
+        copy_expt_data(expt_dirs, expt_id, platefile, fluorfile)
 
+def copy_expt_data(expt_dirs, expt_id, platefile, fluorfile):
+        new_plate = f'{expt_dirs["metadir"]}/{expt_dirs["type"]}-{expt_id}_PlateLayout.xlsx'
+        new_fluor = f'{expt_dirs["inputdir"]}/{expt_dirs["type"]}-{expt_id}_FlowJoExport.xlsx'
+        shutil.copyfile(platefile, new_plate)
+        shutil.copyfile(fluorfile, new_fluor)
 
 def getmd_renamefiles_1expt(fcsfile, plates, expt_id, expt_dirs):
     # metadata holder
