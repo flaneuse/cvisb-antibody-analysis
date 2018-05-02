@@ -16,53 +16,9 @@ import re
 from scipy.stats import percentileofscore
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
 from SysSerologyExpt import SysSerologyExpt
-from sysserology_helpers import read_plates
+# from sysserology_helpers import read_plates
 # [Import the fluorescence counts from FlowJo] ----------------------------------------------------------
-fluorfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx'
-
-def _get_platenum(sheetname):
-    plate_num = [int(s) for s in sheetname.split() if s.isdigit()]
-
-    try:
-        return plate_num[0]
-    except:
-        write_logfile("Unknown plate number in input file {fluorfile}. Please label worksheets as 'Plate 1', 'Plate 2', ...")
-
-def _clean_fluor(df, plate_num):
-    # remove the mean / SD rows
-    df = df.drop(['Mean', 'SD'])
-
-    # convert the filename from an index
-    df = df.reset_index()
-    df.rename(columns = {'index': 'filename'}, inplace = True)
-
-    df['plate'] = plate_num
-
-    # Pull out the well ID for each sample from the filename using regular expression matching
-    # Pulls out the first capitalized letter followed by 1-2 digits
-    df['well'] = df.filename.apply(lambda x: re.search(r'[A-Z]\d{1,2}', x).group(0))
-
-    return df
-
-def read_fluor(filename):
-    # Read in the fluorescence file. Multiple plates found on separate sheets
-    fluor = pd.read_excel(fluorfile, sheetname=None)
-
-    # Container for the combined results of all plates
-    df = pd.DataFrame()
-
-    # Loop over plates; pull out the fluroescence data and
-    for sheetname in fluor.keys():
-        plate_num = _get_platenum(sheetname)
-
-        tmp = _clean_fluor(fluor[sheetname], plate_num)
-
-        df = df.append(tmp)
-
-
-    return(df)
-
-fluor = read_fluor(fluorfile)
+# fluorfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx'
 
 
 
@@ -96,33 +52,34 @@ class ADNP(SysSerologyExpt):
         """
         self.df['fluor_percentile'] = self.df.fluor_score.apply(lambda x: percentileofscore(self.df.fluor_score, x))
 
-    def __init__(self, fluorfile, platefile):
-        super().__init__(fluorfile, platefile)
+    def __init__(self, fluorfile, platefile, expt_id):
+        super().__init__(fluorfile, platefile, expt_id, expt_type = 'ADNP')
 
 
-x = ADNP(fluor)
-# x.export_data('test.xlsx')
-
-platefile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_PlateLayout.xlsx'
-plate_dict = read_plates(platefile)
-
-
-plate_dict
-x.join_samplenames(plate_dict)
-x.calc_mean()
-x.df.head
-
-x.export_data('sample_ADNP', excel = False)
-# summary table
-
-def get_indivs(arr):
-    if(len(arr) == 1):
-        return arr
-    else:
-        return list(arr)
-
-fluor.groupby(['plate']).agg(get_indivs)
-fluor.groupby(['plate', 'well']).agg({'pct_fluor': ['mean', 'std', 'count', get_indivs]})
+# x = ADNP(fluorfile, 'platefile')
+# # x.export_data('test.xlsx')
+# x.df.columns
+#
+# platefile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_PlateLayout.xlsx'
+# plate_dict = read_plates(platefile)
+#
+#
+# plate_dict
+# x.join_samplenames(plate_dict)
+# x.calc_mean()
+# x.df.head
+#
+# x.export_data('sample_ADNP', excel = False)
+# # summary table
+#
+# def get_indivs(arr):
+#     if(len(arr) == 1):
+#         return arr
+#     else:
+#         return list(arr)
+#
+# fluor.groupby(['plate']).agg(get_indivs)
+# fluor.groupby(['plate', 'well']).agg({'pct_fluor': ['mean', 'std', 'count', get_indivs]})
 
 # merged
 

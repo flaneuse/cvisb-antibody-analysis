@@ -15,6 +15,7 @@ import os
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
 from sysserology_helpers import read_plates, create_dirs
 from metadata import getmd_renamefiles, unzip_acs
+from adnp import ADNP
 
 # TODO: relative paths
 # TODO: figure more convenient place for these
@@ -37,7 +38,7 @@ plates, expt_ids = read_plates(platefile)
 # Returns a dict containing all the necessary paths for the experiment
 expt_dict = create_dirs(expt_ids, wd)
 
-# expt_dict['BMGEXP568']
+expt_dict['BMGEXP568']
 
 # [3] Pull out metadata and rename files ------------------------------------------------------------------
 getmd_renamefiles(plates, expt_dict, fcsfile, platefile, fluorfile)
@@ -47,4 +48,6 @@ for expt_id, expt_dirs  in expt_dict.items():
     print(expt_dirs)
 
 # [4] Call experiment calculation ------------------------------------------------------------------------
-expt = ADNP(fluor_vals)
+expt = ADNP(fluorfile, plates)
+
+expt.summary

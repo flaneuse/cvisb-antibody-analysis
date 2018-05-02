@@ -12,21 +12,46 @@ import re
 class SysSerologyExpt:
     scale_factor = 1e4
 
-    def __init__(self, fluorfile, platefile):
+    def __init__(self, fluorfile, plate_dict, expt_id, expt_type):
+        # import data
         self.df = self.read_fluor(fluorfile)
+        self.expt_type = expt_type
+        self.expt_id = expt_id
 
-        # Rename the columns according to what's defined in "fluor_cols"
-        self._rename_cols()
+        # merge samples to their IDs
+        self._join_sampleids(plate_dict)
 
+        # Calculate the score for each sample based on the function defined in the derived classes
         self.calc_score()
 
-    def _rename_cols(self):
-        self.df.rename(columns = self.fluor_cols, inplace = True)
+        # Aggregate up to average for each sample
+        self.calc_mean()
 
-        for key, value in self.fluor_cols.items():
-            self.df[value + "_source"] = key
+        # Save
+        self.export_data(self.expt_type, self.expt_id)
 
-        return self.df
+
+
+# [1] Import the fluorescence data ------------------------------------------------------------------------
+    def read_fluor(self, filename):
+        import pandas as pd
+        # Read in the fluorescence file. Multiple plates found on separate sheets
+        fluor = pd.read_excel(filename, sheetname=None)
+
+        # Container for the combined results of all plates
+        df = pd.DataFrame()
+
+        # Loop over plates; pull out the fluroescence data and
+        for sheetname in fluor.keys():
+            plate_num = self._get_platenum(sheetname)
+
+            tmp = self._clean_fluor(fluor[sheetname], plate_num)
+
+            df = df.append(tmp)
+
+        # Rename the columns according to what's defined in "fluor_cols" (defined individually in the derived classes)
+        self._rename_cols(df)
+        return(df)
 
     # TODO: better error if no plate number
     # TODO: self, + pandas, re
@@ -54,87 +79,34 @@ class SysSerologyExpt:
 
         return df
 
-    def read_fluor(self, filename):
-        import pandas as pd
-        # Read in the fluorescence file. Multiple plates found on separate sheets
-        fluor = pd.read_excel(filename, sheetname=None)
-
-        # Container for the combined results of all plates
-        df = pd.DataFrame()
-
-        # Loop over plates; pull out the fluroescence data and
-        for sheetname in fluor.keys():
-            plate_num = self._get_platenum(sheetname)
-
-            tmp = self._clean_fluor(fluor[sheetname], plate_num)
-
-            df = df.append(tmp)
-
-
-        return(df)
-
-    def export_data(self, filename, format="excel"):
-        if (format == 'excel'):
-            self.df.to_excel(filename)
-        else:
-            self.df.to_csv(filename)
-
-x = SysSerologyExpt('/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx', '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_PlateLayout.xlsx')
-
-y = New('/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx', '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_PlateLayout.xlsx')
-y.fluor_cols
-class New(SysSerologyExpt):
-        # --- Adjust the columns within the Excel sheet ---
-        # define which columns used in the calculations
-        # format: {'column name in FlowJo spreadsheet': 'what to rename it to'}
-        fluor_cols = {
-        'Granulocytes/CD14, CD3 subset/CD14, CD66b subset/beads, CD66b subset | Freq. of Parent': 'pct_fluor',
-        'Granulocytes/CD14, CD3 subset/CD14, CD66b subset/beads, CD66b subset | Geometric Mean (Comp-Alexa Fluor 488-A)': 'MFI'
-        }
-
-        def calc_score(self):
-            print('succcessssss')
-
-        def __init__(self, ff, pf):
-            super().__init__(ff, pf)
-# Works fine
-
-class SysSerologyExpt:
-    scale_factor = 1e4
-
-    def __init__(self, df):
-        self.df = df
-
-        # Rename the columns according to what's defined in "fluor_cols"
-        self._rename_cols()
-
-        self.calc_score()
-
-    def _rename_cols(self):
-        self.df.rename(columns = self.fluor_cols, inplace = True)
+    def _rename_cols(self, df):
+        df.rename(columns = self.fluor_cols, inplace = True)
 
         for key, value in self.fluor_cols.items():
-            self.df[value + "_source"] = key
+            df[value + "_source"] = key
 
-        return self.df
+        return df
 
-    def export_data(self, filename, excel = True):
-        if (excel):
-            self.df.to_excel(filename + ".xlsx")
-            self.summary.to_excel(filename + "_summary.xlsx")
-        else:
-            self.df.to_csv(filename + ".csv")
-            self.summary.to_csv(filename + "_summary.csv")
-
-    def join_samplenames(self, plate_dict):
+    # [2] Join data with their sample IDs ---------------------------------------------------------------------
+    def _join_sampleids(self, plate_dict):
         import pandas as pd
-
-
 
         # TODO: check all columns exist
         self.df = pd.merge(self.df, plate_dict, how='left', on = ['plate', 'well'])
 
+# [3] Aggregate stats -------------------------------------------------------------------------------------
+# TODO: check merge has been run.
+    def calc_mean(self):
+        grouping_cols = ['plate', 'sample_id', 'sample_type', 'experiment', 'expt_id']
 
+        self.df['sample_mean'] = self.df.groupby(grouping_cols).fluor_score.transform('mean')
+        self.df['sample_std'] = self.df.groupby(grouping_cols).fluor_score.transform('std')
+        self.df['num_obs'] = self.df.groupby(grouping_cols).fluor_score.transform('count')
+
+        # collapsed version
+        self.summary = self.df.groupby(grouping_cols).agg({'fluor_score': ['mean', 'std', 'count', self._get_indivs]})
+
+        self.summary.rename(columns = {'_get_indivs': 'indiv_scores', 'count': 'num_obs'})
 
     def _get_indivs(self, arr):
         if(len(arr) == 1):
@@ -142,15 +114,12 @@ class SysSerologyExpt:
         else:
             return tuple(arr)
 
-# TODO: check merge has been run.
-    def calc_mean(self):
-        grouping_cols = ['plate', 'sample_id', 'sample_type', 'experiment', 'expt_id']
-
-        self.df['fluor_mean'] = self.df.groupby(grouping_cols).fluor_score.transform('mean')
-        self.df['fluor_std'] = self.df.groupby(grouping_cols).fluor_score.transform('std')
-        self.df['num_obs'] = self.df.groupby(grouping_cols).fluor_score.transform('count')
-
-        # collapsed version
-        self.summary = self.df.groupby(grouping_cols).agg({'fluor_score': ['mean', 'std', 'count', self._get_indivs]})
-
-        self.summary.rename(columns = {'_get_indivs': 'indiv_scores', 'count': 'num_obs'})
+# [4] Save data -------------------------------------------------------------------------------------------
+    def export_data(self, expt_type, expt_id, excel = True):
+        filename = f'sysserology-{expt_type}-{expt_id}'
+        if (excel):
+            self.df.to_excel(filename + ".xlsx")
+            self.summary.to_excel(filename + "_summary.xlsx")
+        else:
+            self.df.to_csv(filename + ".csv")
+            self.summary.to_csv(filename + "_summary.csv")
