@@ -15,7 +15,7 @@ import os
 import re
 from scipy.stats import percentileofscore
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
-from def_expt import SysSerologyExpt
+from SysSerologyExpt import SysSerologyExpt
 from sysserology_helpers import read_plates
 # [Import the fluorescence counts from FlowJo] ----------------------------------------------------------
 fluorfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx'
@@ -96,8 +96,8 @@ class ADNP(SysSerologyExpt):
         """
         self.df['fluor_percentile'] = self.df.fluor_score.apply(lambda x: percentileofscore(self.df.fluor_score, x))
 
-    def __init__(self, df):
-        super().__init__(df)
+    def __init__(self, fluorfile, platefile):
+        super().__init__(fluorfile, platefile)
 
 
 x = ADNP(fluor)
