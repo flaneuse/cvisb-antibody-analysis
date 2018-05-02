@@ -1,0 +1,108 @@
+# @name:        adcd.py
+# @summary:     Calculations for ADCD experiment
+# @description: Imports fluorescence data from flow cytometry antibody-dependent complement detection
+# @sources:
+# @depends:     pandas, numpy, scipy
+# @author:      Laura Hughes
+# @email:       lhughes@scripps.edu
+# @license:     Apache-2.0
+# @date:        17 April 2018
+
+import pandas as pd
+import numpy as np
+from scipy.stats import percentileofscore
+
+# [Import the fluorescence counts from FlowJo] ----------------------------------------------------------
+fluorfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADCD_data from FlowJo.xlsx'
+
+fluor = pd.read_excel(fluorfile)
+fluor.columns
+# [Calculate ratios + average values] -------------------------------------------------------------------
+# NOTE: this is where you adjust the calculations
+
+
+class ADCD:
+    scale_factor = 1e4
+
+    # !!!! [1/3] !!!! Adjust the columns within the Excel sheet
+    # define which columns used in the calculations
+    # format: {'column name in FlowJo spreadsheet': 'what to rename it to'}
+    fluor_cols = {
+    'beads/PerCP-Cy5-5-A, SSC-A subset | Geometric Mean (FITC-A)': 'MFI_all',
+       'beads/PerCP-Cy5-5-A, SSC-A subset/FITC-A subset | Freq. of Parent': 'pct_fluor',
+       'beads/PerCP-Cy5-5-A, SSC-A subset/FITC-A subset | Geometric Mean (FITC-A)': 'MFI'
+       }
+
+    def calc_score(self):
+        # Rename the columns according to what's defined in "fluor_cols"
+        self._rename_cols()
+
+        # !!!! [2/3] CALCULATION DEFINITION !!!! Change as needed
+        # Creates a new column called 'fluor_score' which calculates the fluorescence score
+        self.df['fluor_score'] = self.df.MFI * \
+            self.df.pct_fluor / self.scale_factor
+        self.df['fluor_score_type'] = 'phagocytotic score'
+
+        self.run_qc()
+
+        return self.df
+
+# !!!! [3/3] Change QC !!!!
+    def run_qc(self):
+        """
+        Function used to run some basic quality control on the fluorescence scores
+        """
+        self.df['fluor_percentile'] = self.df.fluor_score.apply(
+            lambda x: percentileofscore(self.df.fluor_score, x))
+
+    def __init__(self, df):
+        self.df = df
+
+        self.calc_score()
+
+    def _rename_cols(self):
+        self.df.rename(columns= self.fluor_cols, inplace = True)
+
+        for key, value in self.fluor_cols.items():
+            self.df[value + "_source"] = key
+
+        return self.df
+
+x = ADCD(fluor)
+x.df
+x.df.fluor_score.describe()
+
+count     98.000000
+mean      29.774915
+std       54.364140
+min        0.056484
+25%        0.172963
+50%        7.461855
+75%       20.191223
+max      257.855850
+Name: fluor_score, dtype: float64
+
+20.191223 + 1.5*(20.191223 - 0.172963)
+
+
+# summary table
+fluor.groupby(['plate', 'sample_id']).agg(
+    {'phago_score': ['mean', 'std', 'count']})
+
+# merged
+fluor['phago_mean']=fluor.groupby(
+    ['plate', 'sample_id']).phago_score.transform('mean')
+fluor['phago_std']=fluor.groupby(
+    ['plate', 'sample_id']).phago_score.transform('std')
+fluor['num_obs']=fluor.groupby(
+    ['plate', 'sample_id']).phago_score.transform('count')
+
+# np.trapz(np.array([22.7493,	17.768735,	13.9848]), np.array([150, 750, 3750])) / np.trapz(np.array([86.765295,	94.033755,	25.95186]), np.array([150, 750, 3750]))
+#
+# np.trapz(np.array([13.9848, 17.768735,	22.7493]), np.log10([1/3750, 1/750, 1/150])) / np.trapz(np.array([25.95186, 94.033755,	86.765295]), np.log10([1/3750, 1/750, 1/150]))
+#
+# np.trapz(np.array([13.9848, 17.768735,	22.7493]), np.array([1/3750, 1/750, 1/150])) / np.trapz(np.array([25.95186, 94.033755,	86.765295]), np.array([1/3750, 1/750, 1/150]))
+
+import numpy as np
+
+# background subtract
