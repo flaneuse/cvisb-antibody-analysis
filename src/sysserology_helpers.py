@@ -20,7 +20,7 @@ def create_dirs(expt_ids, exptdir):
     for expt_id, expt_type in expt_ids.items():
         datadir, gatingdir, tmpdir, metadir, logfile = create_dirs_1expt(expt_id, expt_type, exptdir)
         expt_dict[expt_id] = {
-        'type': 'expt_type', 'logfile': logfile, 'datadir': datadir,
+        'type': expt_type, 'logfile': logfile, 'datadir': datadir,
         'gatingdir': gatingdir, 'tmpdir': tmpdir, 'metadir': metadir
         }
 

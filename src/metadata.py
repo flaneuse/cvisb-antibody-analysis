@@ -24,7 +24,7 @@ from FlowCytometryTools import FCMeasurement
 # --- common helper functions ---
 # TODO: fix paths
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
-from sysserology_helpers import write_logfile, read_plates
+# from sysserology_helpers import write_logfile, read_plates
 
 
 wd = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/'
@@ -51,7 +51,7 @@ def unzip_acs(fcsfile, tmpdir):
     acs_ref.close()
 
 
-def find_files(fcs_filelist, plate_num, well):
+def find_files(fcs_filelist, plate_num, well, logfile):
     fcs_string = f"{plate_num}\.\w+{well}\_.+\.fcs"
     gate_string = f"{plate_num}\_\w+{well}\_.+\.xml"
 
@@ -61,11 +61,11 @@ def find_files(fcs_filelist, plate_num, well):
     # list(matched_files)
 
     if(len(datafile) == 0):
-        write_logfile(
+        logfile.write(
             f"Missing .fcs data file for well {well}, plate {plate_num}")
 
     if(len(gatefile) == 0):
-        write_logfile(
+        logfile.write(
             f"Missing .xml gating file for well {well}, plate {plate_num}")
 
     return({'datafile': datafile, 'gatefile': gatefile})
@@ -86,11 +86,11 @@ def find_file(filelist, search_string, exact_match=False):
 # [Move and rename the .fcs files] ----------------------------------------------------------------------
 
 
-def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir):
+def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir, logfile):
     well = sample.well
     plate_num = sample.plate
 
-    result = find_files(fcs_filelist, plate_num, well)
+    result = find_files(fcs_filelist, plate_num, well, logfile)
     datafile = result['datafile']
     gatefile = result['gatefile']
 
@@ -101,8 +101,7 @@ def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir):
         # error should have already been recorded in the 'find_files' function
         print("datafile is empty")
     else:
-        fcs_data = FCMeasurement(
-            ID=well, datafile=tmpdir + datafile, readdata=False)
+        fcs_data = FCMeasurement(ID=well, datafile=tmpdir + datafile, readdata=False)
         fcs_date = pd.to_datetime(fcs_data.meta['$DATE'])
         fcs_date = fcs_date.strftime("%Y-%m-%d")
 
@@ -110,22 +109,7 @@ def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir):
         fcs_filename = f'{sample.sample_id}-plate{plate_num}-{well}_sysserology-{sample.expt_id}_{fcs_date}.fcs'
         gate_filename = f'{sample.sample_id}-plate{plate_num}-{well}_sysserology-{sample.expt_id}_{fcs_date}_gates.xml'
 
-        # Here's where it's defined which automatically saved info to pull from the fcs files.
-        md = md.append({
-            'sample_id': sample.sample_id,
-            'plate': plate_num,
-            'well': well,
-            'original_file': fcs_data.meta['$FIL'],
-            'renamed_file': fcs_filename,
-            'expt_name': fcs_data.meta['EXPERIMENT NAME'],
-            'sample_name': fcs_data.meta['$SRC'],
-            'plate name': fcs_data.meta['PLATE NAME'],
-            'sample_date': fcs_date,
-            'flow_cytometer': fcs_data.meta['$CYT'],
-            'fcs_version': fcs_data.meta['CREATOR'],
-            'fcs_settings': fcs_data.meta['SETTINGS'],
-            'username': fcs_data.meta['EXPORT USER NAME']
-        }, ignore_index=True)
+        md = get_metadata(sample, fcs_data, fcs_date, fcs_filename, md)
 
         # [Rename the data files] -------------------------------------------------------------------------------
         os.rename(tmpdir + datafile, f'{datadir}/{fcs_filename}')
@@ -138,28 +122,48 @@ def rename_fcs(fcs_filelist, sample, md, datadir, gatingdir, tmpdir):
     return md
 
 
-def process_files(platefile):
-    # import in the plate lookup table
-    plates = read_plates(platefile)
+def get_metadata(sample, fcs_data, fcs_date, fcs_filename, md):
+    # Here's where it's defined which automatically saved info to pull from the fcs files.
+    md = md.append({
+        'sample_id': sample.sample_id,
+        'plate': sample.plate,
+        'well': sample.well,
+        'original_file': fcs_data.meta['$FIL'],
+        'renamed_file': fcs_filename,
+        'expt_name': fcs_data.meta['EXPERIMENT NAME'],
+        'sample_name': fcs_data.meta['$SRC'],
+        'plate name': fcs_data.meta['PLATE NAME'],
+        'sample_date': fcs_date,
+        'flow_cytometer': fcs_data.meta['$CYT'],
+        'fcs_version': fcs_data.meta['CREATOR'],
+        'fcs_settings': fcs_data.meta['SETTINGS'],
+        'username': fcs_data.meta['EXPORT USER NAME']
+    }, ignore_index=True)
+    return md
 
-    # pull out the experimental id for the given experiment
-    expt_ids = plates.expt_id.unique()
 
-    for expt_id in expt_ids:
-        # only grab the
-        filtered_plates = plates[plates.expt_id == expt_id]
-        expt_types = filtered_plates.experiment.unique()
-
+def getmd_renamefiles(plates, expt_dict):
+    for expt_id, expt_dirs  in expt_dict.items():
         print(expt_id)
-        for expt_type in expt_types:
-            print(expt_type)
-            process_expt(filtered_plates, expt_id, expt_type)
+        # only grab the portion of the plate lookup table containing current expt
+        filtered_plates = plates[plates.expt_id == expt_id]
+
+        getmd_renamefiles_1expt(filtered_plates, expt_id, expt_dirs)
 
 
-# TODO: create unique logfile
-def process_expt(plates, expt_id, expt_type):
-    # create output directories
-    datadir, gatingdir, tmpdir, metadir = create_dirs(plates, expt_id)
+def getmd_renamefiles_1expt(plates, expt_id, expt_dirs):
+    # metadata holder
+    md = pd.DataFrame()
+
+    # grab the output directories
+    datadir = expt_dirs['datadir']
+    gatingdir = expt_dirs['gatingdir']
+    tmpdir = expt_dirs['tmpdir']
+    metadir = expt_dirs['metadir']
+    logfile = expt_dirs['logfile']
+    expt_type = expt_dirs['type']
+
+    print(logfile.logfile)
 
     # unzip the .fcs files
     unzip_acs(fcsfile, tmpdir)
@@ -167,22 +171,21 @@ def process_expt(plates, expt_id, expt_type):
     # TODO: copy the FlowJo XLSX files
 
     # rename the .fcs files, pull out metadata
+    logfile.section("RENAMING FCS & GATING FILES")
     fcs_filelist = os.listdir(tmpdir)
 
-    md = pd.DataFrame()
-    write_logfile("\n--- RENAMING FCS & GATING FILES ---")
-
     for idx, row in plates.iterrows():
-        md = rename_fcs(fcs_filelist, row, md, datadir, gatingdir, tmpdir)
+        md = rename_fcs(fcs_filelist, row, md, datadir, gatingdir, tmpdir, logfile)
 
     md = pd.merge(plates, md, on=['plate', 'well', 'sample_id'])
     # export to .csv file
     md.to_csv(metadir + f"{expt_type}-{expt_id}_metadata.csv", sep=',')
+    logfile.endsection('.fcs/gating files renamed, metadata extracted')
 
     # remove temp directory
-    rm_tmp(tmpdir)
+    rm_tmp(tmpdir, logfile)
 
-def rm_tmp(tmpdir):
+def rm_tmp(tmpdir, logfile):
     # refresh the files in the working directory:
     fcs_filelist = os.listdir(tmpdir)
     # Remove the two extra files that always come along for the ride
@@ -197,8 +200,8 @@ def rm_tmp(tmpdir):
     try:
         os.rmdir(tmpdir)
     except:
-        write_logfile(
+        logfile.write(
             f"Warning: not all .fcs data files were processed. This often happens if you have two experimental IDs in the same .acs file. {os.listdir(tmpdir)} files remain")
 
 
-x = process_files(platefile)
+# x = process_files(platefile)
