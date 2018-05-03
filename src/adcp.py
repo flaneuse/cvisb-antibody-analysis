@@ -1,33 +1,40 @@
-# @name:        adcd.py
-# @summary:     Calculations for ADCD experiment
-# @description: Imports fluorescence data from flow cytometry antibody-dependent complement detection
+# @name:        adcp.py
+# @summary:     Calculations for ADNP experiment
+# @description: Imports fluorescence data from flow cytometry antibody-dependent neutrophil-mediated phagocytosis
 # @sources:
 # @depends:     pandas, numpy, scipy
 # @author:      Laura Hughes
 # @email:       lhughes@scripps.edu
 # @license:     Apache-2.0
-# @date:        17 April 2018
+# @date:        2 May 2018
+
 
 import pandas as pd
 import numpy as np
 import os
+import re
 
 from scipy.stats import percentileofscore
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
 from SysSerologyExpt import SysSerologyExpt
+# from sysserology_helpers import read_plates
+# [Import the fluorescence counts from FlowJo] ----------------------------------------------------------
+# fluorfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_data from FlowJo.xlsx'
 
 
+# TODO: integrate to summarize: split dilution factors, integrate
 # [Calculate ratios + average values] -------------------------------------------------------------------
 # NOTE: this is where you adjust the calculations
-class ADCD(SysSerologyExpt):
-    # !!!! [1/3] !!!! Adjust the columns within the Excel sheet
+# Define a new class, inheriting from the common functions in SysSerologyExpt
+class ADCP(SysSerologyExpt):
+
+    # --- Adjust the columns within the Excel sheet ---
     # define which columns used in the calculations
     # format: {'column name in FlowJo spreadsheet': 'what to rename it to'}
     fluor_cols = {
-    'beads/PerCP-Cy5-5-A, SSC-A subset | Geometric Mean (FITC-A)': 'MFI_all',
-       'beads/PerCP-Cy5-5-A, SSC-A subset/FITC-A subset | Freq. of Parent': 'pct_fluor',
-       'beads/PerCP-Cy5-5-A, SSC-A subset/FITC-A subset | Geometric Mean (FITC-A)': 'MFI'
-       }
+    'Live/Alexa Fluor 488-A, SSC-A subset | Freq. of Parent': 'pct_fluor',
+    'Live/Alexa Fluor 488-A, SSC-A subset | Geometric Mean (Alexa Fluor 488-A)': 'MFI'
+    }
 
     def calc_score(self):
         # !!!! [2/3] CALCULATION DEFINITION !!!! Change as needed
@@ -49,6 +56,37 @@ class ADCD(SysSerologyExpt):
     def __init__(self, fluorfile, platefile, expt_dict):
         super().__init__(fluorfile, platefile, expt_dict)
 
+    def calc_mean(self):
+        print("OVERRIDES MEAN")
+
+
+
+# x = ADNP(fluorfile, 'platefile')
+# # x.export_data('test.xlsx')
+# x.df.columns
+#
+# platefile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_PlateLayout.xlsx'
+# plate_dict = read_plates(platefile)
+#
+#
+# plate_dict
+# x.join_samplenames(plate_dict)
+# x.calc_mean()
+# x.df.head
+#
+# x.export_data('sample_ADNP', excel = False)
+# # summary table
+#
+# def get_indivs(arr):
+#     if(len(arr) == 1):
+#         return arr
+#     else:
+#         return list(arr)
+#
+# fluor.groupby(['plate']).agg(get_indivs)
+# fluor.groupby(['plate', 'well']).agg({'pct_fluor': ['mean', 'std', 'count', get_indivs]})
+
+# merged
 
 
 # np.trapz(np.array([22.7493,	17.768735,	13.9848]), np.array([150, 750, 3750])) / np.trapz(np.array([86.765295,	94.033755,	25.95186]), np.array([150, 750, 3750]))

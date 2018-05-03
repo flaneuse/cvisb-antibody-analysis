@@ -12,7 +12,7 @@
 import pandas as pd
 import numpy as np
 import os
-import re
+
 from scipy.stats import percentileofscore
 os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
 from SysSerologyExpt import SysSerologyExpt
@@ -52,8 +52,8 @@ class ADNP(SysSerologyExpt):
         """
         self.df['fluor_percentile'] = self.df.fluor_score.apply(lambda x: percentileofscore(self.df.fluor_score, x))
 
-    def __init__(self, fluorfile, platefile, expt_id):
-        super().__init__(fluorfile, platefile, expt_id, expt_type = 'ADNP')
+    def __init__(self, fluorfile, platefile, expt_dict):
+        super().__init__(fluorfile, platefile, expt_dict)
 
 
 # x = ADNP(fluorfile, 'platefile')
