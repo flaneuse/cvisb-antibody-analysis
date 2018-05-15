@@ -140,6 +140,8 @@ class SysSerologyExpt:
             if (excel):
                 self.df.to_excel(filename + ".xlsx")
                 self.summary.to_excel(filename + "_summary.xlsx")
+                self.df.to_json(filename + ".json")
             else:
                 self.df.to_csv(filename + ".csv")
                 self.summary.to_csv(filename + "_summary.csv")
+                self.df.to_json(filename + ".json")
