@@ -1,0 +1,6 @@
+# install via `pip install -r requirements.txt`
+
+Flask
+pandas
+flask_restful
+flask_cors
