@@ -132,7 +132,7 @@ def read_plates(platefile):
                 plates = plates.append(plate[meta_cols], ignore_index=True)
             except:
                 msg = f"Sheet '{name}' in {platefile} is missing 1+ columns of {meta_cols}. Rename the plate template columns to match."
-                write_logfile(msg)
+                # write_logfile(msg)
 
     # pull out the experimental id for the given experiment
     # expt_ids = dict of

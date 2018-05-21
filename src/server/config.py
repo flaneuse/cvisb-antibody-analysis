@@ -1,3 +1,4 @@
+# APPLICATION SETTINGS
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 postgres_local_base = 'postgresql://laurahughes:@localhost/'
@@ -23,7 +24,7 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEVELOPMENT = True
     DEBUG = True
-    BCRYPT_LOG_ROUNDS = 4
+    # BCRYPT_LOG_ROUNDS = 4
     SQLALCHEMY_DATABASE_URI = postgres_local_base + database_name
     FRONTEND_URL = 'http://localhost:4200/'
 
