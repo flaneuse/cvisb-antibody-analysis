@@ -15,21 +15,23 @@ class SysSerologyExpt:
     def __init__(self, fluorfile, plate_dict, expt_dict):
         # import data
         self.df = self.read_fluor(fluorfile)
-        self.expt_type = self._get_expttypes(expt_dict)
-        self.expt_id = "-".join(expt_dict.keys()) # if multiple, concat together
-        self.savedirs = self._get_exptdirs(expt_dict)
-
-        # merge samples to their IDs
-        self._join_sampleids(plate_dict)
-
-        # Calculate the score for each sample based on the function defined in the derived classes
-        self.calc_score()
-
-        # Aggregate up to average for each sample
-        self.calc_mean()
-
-        # Save
-        self.export_data()
+        self.plate_dict = []
+        self.expt_dict = []
+        # self.expt_type = self._get_expttypes(expt_dict)
+        # self.expt_id = "-".join(expt_dict.keys()) # if multiple, concat together
+        # self.savedirs = self._get_exptdirs(expt_dict)
+        #
+        # # merge samples to their IDs
+        # self._join_sampleids(plate_dict)
+        #
+        # # Calculate the score for each sample based on the function defined in the derived classes
+        # self.calc_score()
+        #
+        # # Aggregate up to average for each sample
+        # self.calc_mean()
+        #
+        # # Save
+        # self.export_data()
 
 
 

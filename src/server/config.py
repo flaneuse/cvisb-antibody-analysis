@@ -25,6 +25,7 @@ class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
     # BCRYPT_LOG_ROUNDS = 4
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = postgres_local_base + database_name
     FRONTEND_URL = 'http://localhost:4200/'
 

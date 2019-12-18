@@ -19,7 +19,7 @@ class FileRef(db.Model):
         self.expt_type = expt_type
 
     def __repr__(self):
-        return '<id {}>'.format(self.file_id)
+        return '<file id {}>'.format(self.file_id)
 
 
 class Plate(db.Model):
@@ -48,4 +48,47 @@ class Plate(db.Model):
         # self.expt_type = expt_type
 
     def __repr__(self):
-        return '<id {}>'.format(self.plate_id)
+        return '<plate id {}>'.format(self.plate_id)
+
+    def serialize(self):
+        return {
+        'plate_id': self.plate_id,
+        'well': self.well,
+        'expt_id': self.expt_id
+        }
+
+class FluorTable(db.Model):
+    __tablename__ = 'fluor'
+
+    # id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    filename = db.Column(db.String())
+    pct_fluor = db.Column(db.Float())
+    MFI = db.Column(db.Float())
+    plate = db.Column(db.Integer)
+    well = db.Column(db.String(), primary_key=True)
+    row = db.Column(db.String())
+    col = db.Column(db.String())
+    pct_fluor_source = db.Column(db.String())
+    MFI_source = db.Column(db.String())
+
+    db.relationship('Plate', backref='fluortable')
+
+    def __init(self, filename, pct_fluor, MFI, plate, well, row, col, pct_fluor_source, MFI_source):
+        self.filename = filename
+        self.pct_fluor = pct_fluor
+        self.MFI = MFI
+        self.plate = plate
+        self.well = well
+        self.row = row
+        self.col = col
+        self.pct_fluor_source = pct_fluor_source
+        self.MFI_source = MFI_source
+
+    def __repr__(self):
+        return '<obs id {}>'.format(self.MFI)
+
+    def serialize(self):
+        return {
+        'MFI': self.MFI,
+        'well': self.well
+        }

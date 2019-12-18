@@ -13,8 +13,8 @@ import numpy as np
 import os
 
 from scipy.stats import percentileofscore
-os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
-from SysSerologyExpt import SysSerologyExpt
+# os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src/calculations')
+from calculations.SysSerologyExpt import SysSerologyExpt
 
 
 # [Calculate ratios + average values] -------------------------------------------------------------------

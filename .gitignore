@@ -1,3 +1,15 @@
 
 .DS_Store
 *.pyc
+*.xlsx
+*.fcs
+*.xml
+*.csv
+*.json
+*.acs
+example_data/BMGEXP568/log/ADNP_BMGEXP568_logfile.txt
+example_data/BMGEXP577/log/ADCD_BMGEXP577_logfile.txt
+example_data2/BMGEXP568/log/ADNP_BMGEXP568_logfile.txt
+example_data2/BMGEXP569/log/ADNP_BMGEXP569_logfile.txt
+example_data2/BMGEXP577/log/ADCD_BMGEXP577_logfile.txt
+example_data/BMGEXP569/log/ADNP_BMGEXP569_logfile.txt

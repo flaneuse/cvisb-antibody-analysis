@@ -3,6 +3,7 @@ from flask_restful import Resource, Api
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from calculations.sysserology_helpers import read_plates, create_dirs
+from calculations.adnp import ADNP
 import pandas as pd
 import os
 
@@ -18,7 +19,7 @@ CORS(app, supports_credentials=True)
 
 # [Connect to DB] ---------------------------------------------------------------------------------------
 db = SQLAlchemy(app)
-from server.models import FileRef, Plate
+from server.models import FileRef, Plate, FluorTable
 
 # [Views] -----------------------------------------------------------------------------------------------
 @app.route("/")
@@ -26,9 +27,9 @@ def hello():
     return jsonify({'text':'Hello World!'})
 
 
-class Employees(Resource):
-    def get(self):
-        return {'employees': [{'id':1, 'name':'Balram'},{'id':2, 'name':'Tom'}]}, 201
+# class Employees(Resource):
+#     def get(self):
+#         return {'employees': [{'id':1, 'name':'Balram'},{'id':2, 'name':'Tom'}]}, 201
 
 class DownloadData(Resource):
     def get(self):
@@ -73,16 +74,39 @@ class Upload(Resource):
 
         print(request.form) # params
         filetype = request.form['file']
+        expt_type = request.form['expt']
         # print(filetype)
         f = request.files['file']
 
         if(filetype == "plates"):
-            print("data uploaded!")
-
             df, expt_dict = read_plates(f)
             print(df.head())
             try:
                 df.to_sql(name='plate_dict', con=db.engine, index=False, if_exists='append')
+                return jsonify({'text':'Saved result to database'})
+            except Exception as err:
+                print("Unable to add item to database.")
+                print(err)
+                return jsonify({'text':'Unable to save result'})
+        elif(filetype == 'data'):
+
+            if(expt_type == "ADCD"):
+                print('ADCD')
+                expt = ADNP(f, None, None)
+            elif(expt_type == "ADCP"):
+                print('ADCP')
+                expt = ADNP(f, None, None)
+            elif(expt_type == "ADNP"):
+                print('ADNP')
+                expt = ADNP(f, None, None)
+            elif(expt_type == "NKD"):
+                print('NKD')
+                expt = ADNP(f, None, None)
+            else:
+                print("Unknown experiment type!")
+            # print(expt.df)
+            try:
+                expt.df.to_sql(name='fluor', con=db.engine, index=False, if_exists='append')
                 return jsonify({'text':'Saved result to database'})
             except Exception as err:
                 print("Unable to add item to database.")
@@ -112,10 +136,37 @@ class FluorData(Resource):
         print(df)
         return df.to_json()
 
+class Merge(Resource):
+    def get(self):
+        print('merging starting')
+        # TODO: filters so only get data want.
+        join_res = db.session.query(Plate, FluorTable).join(FluorTable, (FluorTable.well == Plate.well) & (FluorTable.plate == Plate.plate))
+        # for _row in join_res:
+        #     print(zip(_row.sample_id, _row.MFI))
+        result = db.session.query(Plate).all()
 
-api.add_resource(Employees, '/employees', methods=['GET']) # Route_1
-api.add_resource(DownloadData, '/dwnload', methods=['GET']) # test download route; '/download' is reserved?
+        # x = pd.read_sql(result, db.session.bind)
+        df = pd.read_sql(sql = join_res.statement,
+                 con = db.session.bind)
+        print(df.head())
+        # for u in db.session.query(Plate).all():
+        #     print(u.__dict__)
+        # print(Plate.__table__.columns)
+        res = []
+        for x,y in join_res:
+            # print(x.serialize())
+            # # print(pd.DataFrame(x))
+            # print(y.serialize())
+            res.append({
+            'sample_id': x.sample_id,
+            'MFI': y.MFI})
+        return jsonify(res)
+        # return jsonify({'num returned': len(join_res)})
+
+# api.add_resource(Employees, '/employees', methods=['GET']) # Route_1
+api.add_resource(DownloadData, '/dwnload', methods=['GET']) # test download route; '/download' is reserved (?)
 api.add_resource(Upload, '/upload', methods=['POST']) # suck up the data
+api.add_resource(Merge, '/merge', methods=['GET']) # merge the data together for a particular experiment
 api.add_resource(FluorData, '/fluordata', methods=['GET']) # retrieve processed data
 
 if __name__ == '__main__':

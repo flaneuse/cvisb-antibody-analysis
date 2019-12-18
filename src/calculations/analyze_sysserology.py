@@ -12,7 +12,7 @@
 # [0] Import the dependent functions ----------------------------------------------------------------------
 import os
 
-os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src')
+os.chdir('/Users/laurahughes/GitHub/cvisb-antibody-analysis/src/calculations')
 from sysserology_helpers import read_plates, create_dirs
 from metadata import getmd_renamefiles, unzip_acs
 
@@ -48,11 +48,12 @@ fcsfile = '/Users/laurahughes/GitHub/cvisb-antibody-analysis/example_data/ADNP_T
 # [1] Read in the plate metadata file ---------------------------------------------------------------------
 plates, expt_ids = read_plates(platefile)
 plates
+expt_ids
 
 # [2] Create dirs + logfile -------------------------------------------------------------------------------
 # Returns a dict containing all the necessary paths for the experiment
 expt_dict = create_dirs(expt_ids, wd)
-
+expt_dict
 
 
 
@@ -61,5 +62,8 @@ getmd_renamefiles(plates, expt_dict, fcsfile, platefile, fluorfile)
 
 # [4] Call experiment calculation ------------------------------------------------------------------------
 expt = ADNP(fluorfile, plates, expt_dict)
+expt.df.columns
 # expt = NKD(fluorfile, plates, expt_dict)
 # expt = ADCD(fluorfile, plates, expt_dict)
+#
+expt.expt_type
